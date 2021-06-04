@@ -146,6 +146,19 @@ namespace AzureDevOps.Community
             {
                 State.Log.LogError(ex.ToString());
             }
+        }        
+        public async Task RemovePRReviewer(string userId)
+        {
+            string Url = $"{State.OrganizationUrl}/{State.Project}/_apis/git/repositories/{State.Repository}/pullRequests/{State.PullRequestId}/reviewers/{userId}?api-version=6.0";
+            try
+            {
+                // this needs no reviewer passed as the reviewer to remove is in the URL
+                await HttpDelete<string>(Url);
+            }
+            catch (Exception ex)
+            {
+                State.Log.LogError(ex.ToString());
+            }
         }
         private async Task<string> HttpGet(string Url, string encoding = "application/json")
         {
@@ -180,6 +193,26 @@ namespace AzureDevOps.Community
                     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(encoding));
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credential);
                     var response = await client.PutAsJsonAsync<T>(Url, body);
+                    response.EnsureSuccessStatusCode();
+                }
+            }
+            catch (Exception ex)
+            {
+                State.Log.LogError(ex.ToString());
+            }
+        }       
+        private async Task HttpDelete<T>(string Url, string encoding = "application/json")
+        {
+            var AzDoPAT = Environment.GetEnvironmentVariable("AzDoPAT", EnvironmentVariableTarget.Process);
+            string credential = Convert.ToBase64String(Encoding.ASCII.GetBytes($":{AzDoPAT}"));
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Clear();
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(encoding));
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credential);
+                    var response = await client.DeleteAsync(Url);
                     response.EnsureSuccessStatusCode();
                 }
             }

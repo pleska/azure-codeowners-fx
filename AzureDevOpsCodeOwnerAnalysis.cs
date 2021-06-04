@@ -72,17 +72,20 @@ namespace AzureDevOps.Community
                 // Assign any missing code owners as reviewers
                 foreach(var owner in impactedCodeOwners)
                 {
-                    if (!reviewers.Contains(owner))
+                    string userId = await api.LookupUserId(owner);
+                    if (String.IsNullOrWhiteSpace(userId))
                     {
-                        string userId = await api.LookupUserId(owner);
-                        if (!String.IsNullOrWhiteSpace(userId))
+                        state.Log.LogInformation($"Can't Add/Remove Reviewer {owner} NO USER ID!!");
+                    }
+                    else 
+                    {
+                        // existing reviewers are removed (in case they defered or were made option prior)
+                        // this forces re-evaluation on update
+                        if (reviewers.Contains(owner))
                         {
-                            await api.AddPRReviewer(userId);
+                            await api.RemovePRReviewer(userId);
                         }
-                        else
-                        {
-                            state.Log.LogInformation($"Can't Add Reviewer {owner} NO USER ID!!");
-                        }
+                        await api.AddPRReviewer(userId);
                     }
                 }
             }
